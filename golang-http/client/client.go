@@ -16,6 +16,7 @@ import (
 var (
 	threadCount     int64
 	connectionCount int64
+	concurrency     int64
 	address         string
 	url             string
 )
@@ -23,8 +24,11 @@ var (
 func init() {
 	clientCmd.PersistentFlags().Int64Var(&threadCount, "threadCount", 1, "")
 	clientCmd.PersistentFlags().Int64Var(&connectionCount, "connectionCount", 1, "")
+	clientCmd.PersistentFlags().Int64Var(&concurrency, "concurrency", 1, "")
 	clientCmd.PersistentFlags().StringVar(&address, "address", ":9999", "")
 }
+
+var httpClient *http.Client
 
 var clientCmd = &cobra.Command{
 	Use: "httpben [flags] url",
@@ -49,10 +53,15 @@ func runClient(cmd *cobra.Command, args []string) {
 	url = args[0]
 
 	runtime.GOMAXPROCS(int(threadCount))
+	tp := http.DefaultTransport.(*http.Transport)
+	tp.MaxIdleConns = int(connectionCount)
+	httpClient = &http.Client{
+		Transport: tp,
+	}
 
 	s := stats.NewStat()
 
-	for i := 0; i < int(connectionCount); i++ {
+	for i := 0; i < int(concurrency); i++ {
 		go func() {
 			j := 0
 			for {

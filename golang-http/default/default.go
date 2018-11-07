@@ -10,19 +10,18 @@ import (
 
 var (
 	routeCount int64
+	address    string
 )
-
 
 func init() {
 	cmdDefault.PersistentFlags().Int64Var(&routeCount, "routeCount", 0, "")
+	cmdDefault.PersistentFlags().StringVar(&address, "address", ":9999", "")
 }
 
 var cmdDefault = &cobra.Command{
-	Use: "rio",
+	Use: "defaults",
 	Run: runDefault,
 }
-
-
 
 func runDefault(cmd *cobra.Command, args []string) {
 
