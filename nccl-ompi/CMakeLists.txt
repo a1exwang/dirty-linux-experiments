@@ -20,5 +20,12 @@ set_target_properties(nccl-ompi-allreduce
 add_executable(mmpl_main mmpl_main.cu)
 target_compile_options(mmpl_main PRIVATE -std=c++11)
 target_include_directories(mmpl_main PRIVATE ${CUDA_INCLUDE_DIRECTORIES})
-target_link_libraries(mmpl_main nccl cublas mmpl ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} boost_system)
+#target_link_libraries(mmpl_main nccl cublas mmpl ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} boost_system cuda)
 set_target_properties(mmpl_main PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
+cuda_add_executable(sgd sgd.cpp)
+cuda_add_cublas_to_target(sgd)
+target_compile_options(sgd PRIVATE -std=c++11)
+target_include_directories(sgd PRIVATE ${CUDA_INCLUDE_DIRECTORIES})
+target_link_libraries(sgd nccl ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
+set_target_properties(sgd PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
