@@ -56,14 +56,20 @@ const asgd::Tensor &asgd::InnerProduct::operator()(const asgd::Tensor &input) {
 
   for (int64_t i_bs = 0; i_bs < bs; i_bs++) {
     for (int64_t i_out = 0; i_out < n_out; i_out++) {
-      this->output_[i_bs * n_out + i_out] = 0;
+      Dtype o = 0;
       for (int64_t i_in = 0; i_in < n_in; i_in++) {
-        this->output_[i_bs * n_out + i_out] += input[i_bs * n_in + i_in] * at(i_in, i_out);
+        o += input[i_bs * n_in + i_in] * at(i_in, i_out);
       }
       // bias
-      this->output_[i_bs * n_out + i_out] += at(n_in, i_out);
+      o += at(n_in, i_out);
+      this->output_[i_bs * n_out + i_out] = o;
     }
   }
+//  cout << "bias: ";
+//  for (int i = 0; i < n_out; i++) {
+//    cout << at(n_in, i) << ", ";
+//  }
+//  cout << endl;
   return this->output_;
 }
 
@@ -83,8 +89,7 @@ void asgd::InnerProduct::df(Tensor &input_diff, const Tensor &output_diff, const
     for (int64_t i_out = 0; i_out < this->n_out; i_out++) {
       for (int64_t i_in = 0; i_in < this->n_in; i_in++) {
         dfdw[i_bs*wsize + i_out*(n_in+1) + i_in] =
-            output_diff[i_bs * n_out + i_out] *
-            input[i_bs * n_in + i_in];
+            output_diff[i_bs * n_out + i_out] * input[i_bs * n_in + i_in];
       }
       dfdw[i_bs*wsize + i_out*(n_in+1) + n_in] = output_diff[i_bs * n_out + i_out];
     }
@@ -93,6 +98,9 @@ void asgd::InnerProduct::df(Tensor &input_diff, const Tensor &output_diff, const
 
 void InnerProduct::applyUpdates(Dtype lr) {
   int64_t bs = this->output_.shape()[0];
+//  cout << "-----------------" << endl;
+//  cout << "applyUpdate: ";
+//  this->weight.pprint(cout);
   for (int64_t i_bs = 0; i_bs < bs; i_bs++) {
     for (int64_t i = 0; i < n_in*n_out; i++) {
       this->weight[i] += -lr * this->dfdw[i_bs*(n_in+1)*n_out + i];
@@ -102,25 +110,31 @@ void InnerProduct::applyUpdates(Dtype lr) {
 
 void InnerProduct::setup() {
   std::default_random_engine generator;
-  std::normal_distribution<Dtype> distribution(0, 0.01);
+  std::normal_distribution<Dtype> distribution(0, 0.1);
 
   for (int i = 0; i < this->weight.size(); ++i) {
-    this->weight[i] = 1; // distribution(generator);
+    this->weight[i] = 0;
   }
 }
 
 void Net::forward() {
   const Tensor &out = (*fns[0])(Tensor::zero());
   const Tensor *last_out = &out;
-  cout << "forward: " << fns[0]->name() << endl;
-  last_out->pprint(std::cout);
+
+//  cout << "---------------------" << endl;
+//  cout << "forward: " << fns[0]->name() << endl;
+//  last_out->pprint(std::cout);
   for (int i = 1; i < fns.size(); i++) {
-    cout << "forward: " << fns[i]->name() << endl;
-    last_out->pprint(std::cout);
+    auto last_in = last_out;
     last_out = &((*fns[i])(*last_out));
+
+    cout << "---------------------" << endl;
+    cout << "forward: " << fns[i]->name() << endl;
+//    cout << "input: ";
+//    last_in->pprint(std::cout);
+    cout << "output: ";
+    last_out->pprint(std::cout);
   }
-  cout << "forward: " << fns[fns.size()-1]->name() << endl;
-  last_out->pprint(std::cout);
   assert(last_out->size() == 1);
   loss_ = last_out->scalar();
 }
@@ -134,11 +148,11 @@ void Net::backward() {
     const auto &input = fns[i-1]->output();
     Tensor *input_diff = new Tensor(input.shape());
     fns[i]->df(*input_diff, *output_diff, input);
-//    cout << "Layer " << fns[i]->name() << " Grad: ";
-//    result->pprint(std::cout);
-    if (i != fns.size() - 1) {
-      delete output_diff;
-    }
+//    cout << "backward: " << fns[i]->name() << " Grad: ";
+//    input_diff->pprint(std::cout);
+//    if (i != fns.size() - 1) {
+//      delete output_diff;
+//    }
     output_diff = input_diff;
   }
 }
@@ -160,6 +174,9 @@ const Tensor &Data::operator()(const Tensor &input) {
     if (offset >= this->data.size()) {
       offset = 0;
     }
+  }
+  for (int i = 0; i < current_batch->size(); i++) {
+    output_[i] = (*current_batch)[i];
   }
   return *current_batch;
 }
@@ -200,7 +217,7 @@ void Data::setup() {
   current_batch = new Tensor({bs, cols*rows});
 }
 
-void L2Norm::setup() {
+void Loss::setup() {
   auto filename = "train-labels-idx1-ubyte";
   int fd = open(filename, O_RDONLY);
   assert(fd > 0);
