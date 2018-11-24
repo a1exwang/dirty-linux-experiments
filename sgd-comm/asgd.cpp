@@ -1,6 +1,13 @@
-#include "functions.h"
+#include <tensor.h>
+#include <net.h>
+#include <functions/data.h>
+#include <functions/inner_product.h>
+#include <functions/loss.h>
+#include <functions/pure.h>
+
 #include <vector>
 #include <iostream>
+#include <cmath>
 
 
 using namespace asgd;
@@ -29,16 +36,16 @@ int main(int argc, char **argv) {
       new L2Norm("loss_", 10, bs),
   };
 
-  Tensor *fake = new Tensor({bs, 4});
-  for (int i = 0; i < fake->size(); i++) {
-    (*fake)[i] = i - fake->size()/2;
-  }
-  vector<Function*> layers1 = {
-      new FakeData("data", fake),
-      new InnerProduct("fc1", 4, 10, bs),
-      new PureFunction("relu3", 10, bs, relu, drelu),
-      new L2Norm("loss_", 10, bs),
-  };
+//  Tensor *fake = new Tensor({bs, 4});
+//  for (int i = 0; i < fake->size(); i++) {
+//    (*fake)[i] = i - fake->size()/2;
+//  }
+//  vector<Function*> layers1 = {
+////      new FakeData("data", fake),
+//      new InnerProduct("fc1", 4, 10, bs),
+//      new PureFunction("relu3", 10, bs, relu, drelu),
+//      new L2Norm("loss_", 10, bs),
+//  };
 
   Net net(layers, 0.1);
   net.setup();
