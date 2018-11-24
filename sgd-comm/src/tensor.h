@@ -75,6 +75,18 @@ public:
     return *this;
   }
 
+  int64_t argmax() const {
+    int64_t ret = 0;
+    Dtype max = 0;
+    for (int64_t i = 0; i < size_; i++) {
+      if (data[i] > max) {
+        max = data[i];
+        ret = i;
+      }
+    }
+    return ret;
+  }
+
 //  Tensor &&operator*(const Tensor &rhs) const;
 //  Tensor &&operator*(Dtype rhs) const;
   Dtype scalar() const;

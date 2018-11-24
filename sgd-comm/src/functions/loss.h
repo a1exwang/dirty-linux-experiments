@@ -52,25 +52,20 @@ public:
     Dtype loss = 0;
     int64_t correct = 0;
     for (int i_bs = 0; i_bs < bs; i_bs++) {
-      int64_t argmax = 0, argmax_ = 0;
-      Dtype max_val = 0, max_val_ = 0;
+      int64_t argmax_ = 0;
+      Dtype max_val_ = 0;
 
       const auto &nextLabel_ = labelAt(offset + i_bs);
       for (int i_in = 0; i_in < n_in; i_in++) {
         auto y = nextLabel_[i_in];
         auto y_ = input[{i_bs, i_in}];
-
-        if (y > max_val) {
-          max_val = y;
-          argmax = i_in;
-        }
         if (y_ > max_val_) {
           max_val_ = y_;
           argmax_ = i_in;
         }
         loss += (y - y_)*(y - y_);
       }
-      if (argmax == argmax_) {
+      if (nextLabel_.argmax() == argmax_) {
         correct ++;
       }
     }
@@ -80,7 +75,7 @@ public:
 //    std::cout << "Label [" << offset << "," << offset+bs <<  "), ";
 //    labels[offset]->pprint(std::cout);
 //    input.pprint(std::cout);
-    std::cout << "Accuracy = " << correct / bs << std::endl;
+    std::cout << "Accuracy = " << Dtype(double(correct) / bs)*100 << "%" << std::endl;
     output[0] = loss;
   }
   std::tuple<Dtype, Dtype> test(const Tensor &input) const override {

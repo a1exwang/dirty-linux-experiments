@@ -52,10 +52,10 @@ int main(int argc, char **argv) {
 
   Dtype test_loss, test_acc;
   for (int it = 0; it < iters; it++) {
-    if (it % test_size == 0) {
-      tie(test_loss, test_acc) = net.test(bs);
-      cout << "Iter = " << it << " TestLoss = " << test_loss << " TestAcc = " << test_acc * 100 << "%" << endl;
-    }
+//    if (it % test_size == 0) {
+//      tie(test_loss, test_acc) = net.test(bs);
+//      cout << "Iter = " << it << " TestLoss = " << test_loss << " TestAcc = " << test_acc * 100 << "%" << endl;
+//    }
     net.forward();
     auto loss = net.loss();
     cout << "Iter = " << it << " Loss = " << loss << endl;
