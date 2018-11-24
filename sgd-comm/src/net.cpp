@@ -1,48 +1,35 @@
 #include <net.h>
+#include <functions/data.h>
+#include <functions/loss.h>
 
 #include <cassert>
+#include <iostream>
+
+using namespace std;
 
 namespace asgd {
 
 
 void Net::forward() {
-  const Tensor &out = (*fns[0])(Tensor::zero());
-  const Tensor *last_out = &out;
-
-//  cout << "---------------------" << endl;
-//  cout << "forward: " << fns[0]->name() << endl;
-//  last_out->pprint(std::cout);
+  auto zero = Tensor::zero();
+  const Tensor *out = &fns[0]->forward(zero);
   for (int i = 1; i < fns.size(); i++) {
-    auto last_in = last_out;
-    last_out = &((*fns[i])(*last_out));
-
-//    cout << "---------------------" << endl;
-//    cout << "forward: " << fns[i]->name() << endl;
-//    cout << "input: ";
-//    last_in->pprint(std::cout);
-//    cout << "output: ";
-//    last_out->pprint(std::cout);
+    out = &fns[i]->forward(*out);
+//    cout << "forward " << fns[i]->name() << ", output = "; out->pprint(cout);
   }
-  assert(last_out->size() == 1);
-  loss_ = last_out->scalar();
+  assert(out->size() == 1);
+  loss_ = out->scalar();
 }
 
 void Net::backward() {
   auto loss_tensor = Tensor::scalar(1);
-  const Tensor *output_diff = &loss_tensor;
 
   for (int64_t i = fns.size() - 1; i > 0; i--) {
-    // FIXME leaky memory
     const auto &input = fns[i-1]->output();
-    Tensor *input_diff = new Tensor(input.shape());
-    fns[i]->df(*input_diff, *output_diff, input);
-//    cout << "--------------------------" << endl;
-//    cout << "backward: " << fns[i]->name() << " Grad: ";
-//    input_diff->pprint(std::cout);
-//    if (i != fns.size() - 1) {
-//      delete output_diff;
-//    }
-    output_diff = input_diff;
+    auto &input_diff = fns[i-1]->output_diff();
+    fns[i]->df(input_diff, input);
+//    cout << "input_diff: " << fns[i]->name();
+//    input_diff.pprint(cout);
   }
 }
 
@@ -51,4 +38,19 @@ void Net::applyUpdate() {
     fn->applyUpdates(lr);
   }
 }
+
+std::tuple<Dtype, Dtype> Net::test(int64_t test_size) {
+  auto data = dynamic_cast<Data*>(fns[0]);
+  auto loss = dynamic_cast<Loss*>(fns[fns.size() - 1]);
+  const Tensor *last_out = &data->test(test_size);
+
+  for (int i = 1; i < fns.size() - 1; i++) {
+    auto output = new Tensor(fns[i]->output().shape());
+    (*fns[i])(*output, *last_out);
+//    delete last_out;
+    last_out = output;
+  }
+  return loss->test(*last_out);
+}
+
 }

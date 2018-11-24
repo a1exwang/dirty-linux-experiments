@@ -11,7 +11,8 @@ class Tensor {
 public:
   static Tensor zero() { return Tensor(std::vector<int64_t>({})); }
   static Tensor scalar(Dtype n) { auto t = Tensor({1}); *t.data = n; return t; }
-  Tensor() :size_(0), shape_({}), data(nullptr) { }
+
+  Tensor() :size_(0), shape_({}), data(nullptr) {}
   explicit Tensor(const std::vector<int64_t> &shape) :shape_(shape) {
     if (shape.size() == 0) {
       data = nullptr;
@@ -25,8 +26,9 @@ public:
     for (int i = 0; i < this->size(); i++) {
       data[i] = Dtype(0);
     }
+    setupRadix();
   }
-  Tensor(const Tensor &rhs) :shape_(rhs.shape_), size_(rhs.size_) {
+  Tensor(const Tensor &rhs) :shape_(rhs.shape_), size_(rhs.size_), radixes_(rhs.radixes_) {
     if (this->data) {
       delete this->data;
     }
@@ -46,16 +48,16 @@ public:
     this->shape_ = rhs.shape_;
     this->size_ = rhs.size_;
     this->data = new Dtype[rhs.size()];
+    this->radixes_ = rhs.radixes_;
     memcpy(this->data, rhs.data, sizeof(Dtype) * rhs.size());
     return *this;
   }
-//    Tensor(Tensor &&t) noexcept :shape_(std::move(t.shape_)), data(t.data), size_(t.size_) {}
-
-  void pprint(std::ostream &os) const;
-
   ~Tensor() {
     delete data;
   }
+
+  void pprint(std::ostream &os) const;
+
   bool isZero() { return data == nullptr; }
 
   std::vector<int64_t> shape() const;
@@ -63,14 +65,28 @@ public:
 
   const Dtype &operator[](int64_t offset) const;
   Dtype &operator[](int64_t offset);
+  Dtype &operator[](const std::vector<int64_t> &indexes);
+  const Dtype &operator[](const std::vector<int64_t> &indexes) const;
 
-  Tensor &&operator*(const Tensor &rhs) const;
-  Tensor &&operator*(Dtype rhs) const;
+  Tensor &operator/=(Dtype rhs) {
+    for (int64_t i = 0; i < size_; i++) {
+      data[i] /= rhs;
+    }
+    return *this;
+  }
+
+//  Tensor &&operator*(const Tensor &rhs) const;
+//  Tensor &&operator*(Dtype rhs) const;
   Dtype scalar() const;
+  friend std::ostream &operator <<(std::ostream &, const Tensor &);
 private:
+  void setupRadix();
   std::vector<int64_t> shape_;
   int64_t size_;
   Dtype *data;
+  std::vector<int64_t> radixes_;
 };
+
+std::ostream &operator <<(std::ostream &, const Tensor &);
 
 }
