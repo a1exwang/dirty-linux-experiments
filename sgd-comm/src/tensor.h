@@ -5,12 +5,11 @@
 
 namespace asgd {
 
-typedef double Dtype;
+typedef float Dtype;
 
 class Tensor {
 public:
-  static Tensor zero() { return Tensor(std::vector<int64_t>({})); }
-  static Tensor scalar(Dtype n) { auto t = Tensor({1}); *t.data = n; return t; }
+  static Tensor null() { return Tensor(std::vector<int64_t>({})); }
 
   Tensor() :size_(0), shape_({}), data(nullptr) {}
   explicit Tensor(const std::vector<int64_t> &shape) :shape_(shape) {
@@ -91,6 +90,7 @@ public:
 //  Tensor &&operator*(Dtype rhs) const;
   Dtype scalar() const;
   friend std::ostream &operator <<(std::ostream &, const Tensor &);
+  Dtype *mutableData() { return data; }
 private:
   void setupRadix();
   std::vector<int64_t> shape_;

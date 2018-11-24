@@ -10,6 +10,7 @@
 #include <tuple>
 #include <iostream>
 #include <cassert>
+#include <mpi.h>
 
 
 using namespace std;
@@ -17,24 +18,6 @@ using namespace std;
 
 namespace asgd {
 
-
-const Tensor &Data::forward(const Tensor &input) {
-  for (int64_t i_bs = 0; i_bs < bs; i_bs++) {
-    const auto &img = *this->train_data[offset];
-    for (int j = 0; j < img.size(); j++) {
-      (*current_batch)[{i_bs, j}] = img[j];
-    }
-//    std::cout << "Data " << offset << ", ";
-    offset++;
-    if (offset >= this->train_data.size()) {
-      offset = 0;
-    }
-  }
-  for (int i = 0; i < current_batch->size(); i++) {
-    output_[i] = (*current_batch)[i];
-  }
-  return *current_batch;
-}
 
 std::tuple<vector<Tensor*>, int64_t, int64_t> readMnistImages(const std::string &filename) {
   vector<Tensor*> ret;
@@ -70,20 +53,39 @@ void Data::setup() {
   tie(test_data, rows, cols) = readMnistImages("t10k-images-idx3-ubyte");
   tie(train_data, rows, cols) = readMnistImages("train-images-idx3-ubyte");
   current_batch = new Tensor({bs, rows*cols});
+//  current_test_batch = new Tensor({bs, rows*cols});
+  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+  offset = world_rank;
+}
+
+const Tensor &Data::forward(const Tensor &input) {
+  for (int64_t i_bs = 0; i_bs < bs; i_bs++) {
+    const auto &img = *this->train_data[(offset+i_bs)%train_data.size()];
+    for (int j = 0; j < img.size(); j++) {
+      (*current_batch)[{i_bs, j}] = img[j];
+    }
+//    std::cout << "Data " << offset << ", ";
+  }
+  for (int i = 0; i < current_batch->size(); i++) {
+    output_[i] = (*current_batch)[i];
+  }
+
+  offset += world_size * bs;
+  offset %= train_data.size();
+  return *current_batch;
 }
 
 const Tensor &Data::test(int64_t test_size) {
-  for (int64_t i_bs = 0; i_bs < test_size; i_bs++) {
+  for (int64_t i_bs = 0; i_bs < bs; i_bs++) {
     const auto &img = *this->test_data[test_offset];
     for (int j = 0; j < img.size(); j++) {
       (*current_batch)[{i_bs, j}] = img[j];
     }
-//    std::cout << "Test " << test_offset << ", ";
-    test_offset++;
-    if (test_offset >= this->test_data.size()) {
-      test_offset = 0;
-    }
   }
+
+//  test_offset += bs;
+  test_offset %= test_data.size();
   return *current_batch;
 }
 

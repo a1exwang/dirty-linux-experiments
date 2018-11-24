@@ -30,8 +30,10 @@ public:
   virtual void df(Tensor &weight_diff, Tensor &input_diff, const Tensor &output_diff, const Tensor &input, const Tensor &output) const { };
 
   virtual void applyUpdates(Dtype lr) {
-    for (int64_t i = 0; i < this->weight_diff_.size(); i++) {
-      this->weight_[i] += -lr * this->weight_diff_[i];
+    if (this->learnable()) {
+      for (int64_t i = 0; i < this->weight_diff_.size(); i++) {
+        this->weight_[i] += -lr * this->weight_diff_[i];
+      }
     }
   };
 
