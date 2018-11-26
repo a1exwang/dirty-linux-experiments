@@ -16,5 +16,6 @@ add_executable(asgd asgd.cpp
         src/functions/data.cpp
         src/functions/inner_product.cpp
         src/functions/loss.cpp
+        src/utils/benchmark.cpp
         )
 target_link_libraries(asgd ${MPI_CXX_LIBRARIES})

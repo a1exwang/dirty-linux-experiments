@@ -54,9 +54,13 @@ void Data::setup() {
   tie(train_data, rows, cols) = readMnistImages("train-images-idx3-ubyte");
   current_batch = new Tensor({bs, rows*cols});
 //  current_test_batch = new Tensor({bs, rows*cols});
-  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  offset = world_rank;
+  if (use_mpi) {
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    offset = world_rank;
+  } else {
+    offset = 0;
+  }
 }
 
 const Tensor &Data::forward(const Tensor &input) {
@@ -71,7 +75,11 @@ const Tensor &Data::forward(const Tensor &input) {
     output_[i] = (*current_batch)[i];
   }
 
-  offset += world_size * bs;
+  if (use_mpi) {
+    offset += world_size * bs;
+  } else {
+    offset += world_size;
+  }
   offset %= train_data.size();
   return *current_batch;
 }

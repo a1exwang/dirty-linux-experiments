@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <chrono>
 #include <mpi.h>
 
 using namespace std;
@@ -28,8 +29,10 @@ void Net::backward() {
     auto &input_diff = fns[i-1]->output_diff();
     fns[i]->df(input_diff, input);
 
-    MPI_Allreduce(MPI::IN_PLACE, input_diff.mutableData(), (int)input_diff.size(), MPI::FLOAT, MPI::SUM, MPI_COMM_WORLD);
-    input_diff /= world_size;
+    if (world_size > 0) {
+      MPI_Allreduce(MPI::IN_PLACE, input_diff.mutableData(), (int)input_diff.size(), MPI::FLOAT, MPI::SUM, MPI_COMM_WORLD);
+      input_diff /= world_size;
+    }
   }
 }
 

@@ -34,7 +34,7 @@ protected:
 
 class L2Norm :public Loss {
 public:
-  L2Norm(const std::string &name, int64_t n_in, int64_t bs);
+  L2Norm(const std::string &name, int64_t n_in, int64_t bs, bool use_mpi);
   const Tensor &labelAt(int64_t at) const {
     assert(at >= 0);
     return *labels[at % labels.size()];
@@ -45,6 +45,7 @@ public:
   std::tuple<Dtype, Dtype> test(const Tensor &input) override;
 private:
   int world_rank, world_size;
+  bool use_mpi;
 };
 
 class CrossEntropy :public Loss {

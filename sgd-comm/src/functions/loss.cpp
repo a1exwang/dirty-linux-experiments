@@ -43,10 +43,14 @@ void Loss::setup() {
 }
 
 
-L2Norm::L2Norm(const std::string &name, int64_t n_in, int64_t bs) :Loss(name, n_in, bs) {
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-  offset = world_rank;
+L2Norm::L2Norm(const std::string &name, int64_t n_in, int64_t bs, bool use_mpi) :Loss(name, n_in, bs), use_mpi(use_mpi) {
+  if (use_mpi) {
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    offset = world_rank;
+  } else {
+    offset = 0;
+  }
 }
 
 const Tensor &L2Norm::forward(const Tensor &input) {
@@ -89,7 +93,11 @@ void L2Norm::df(Tensor &input_diff, const Tensor &input) {
       input_diff[{i_bs, i_in}] = (y_ - y);
     }
   }
-  this->offset += bs * world_size;
+  if (use_mpi) {
+    this->offset += bs * world_size;
+  } else {
+    this->offset += bs;
+  }
   this->offset %= this->labels.size();
 }
 
