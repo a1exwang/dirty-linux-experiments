@@ -78,7 +78,7 @@ const Tensor &Data::forward(const Tensor &input) {
   if (use_mpi) {
     offset += world_size * bs;
   } else {
-    offset += world_size;
+    offset += bs;
   }
   offset %= train_data.size();
   return *current_batch;

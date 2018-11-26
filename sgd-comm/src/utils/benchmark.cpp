@@ -52,6 +52,14 @@ void asgd::Benchmark::pprint(std::ostream &os) const {
   std::string name;
   std::vector<TimePoint> time_points_per_metric;
   os << "Benchmark<" << this->name << ">" << endl;
+  auto average_on_all_metrics = chrono::high_resolution_clock::duration(0);
+
+  vector<tuple<
+      std::chrono::high_resolution_clock::duration,
+      std::chrono::high_resolution_clock::duration,
+      std::chrono::high_resolution_clock::duration,
+      double>> data;
+
   for (const auto &time_point : time_points) {
     std::tie(name, time_points_per_metric) = time_point;
     assert(time_points_per_metric.size() % 2 == 0);
@@ -85,21 +93,35 @@ void asgd::Benchmark::pprint(std::ostream &os) const {
     }
     decltype(sum) average = sum / n;
     auto average_value = get_duration_value<OutputTimeFormat>(average);
-    double deviation = 0;
+    double std_dev = 0;
     for (auto duration : durations) {
       auto duration_value = get_duration_value<OutputTimeFormat>(duration);
-       deviation += (duration_value-average_value)*(duration_value-average_value);
+       std_dev += (duration_value-average_value)*(duration_value-average_value);
     }
-    deviation /= n;
+    std_dev /= n;
+    std_dev = sqrt(std_dev);
 
+    average_on_all_metrics += average;
+    data.push_back({average, min, max, std_dev});
+  }
+  int i = 0;
+  for (auto &time_point : time_points) {
+    std::tie(name, time_points_per_metric) = time_point;
+    assert(time_points_per_metric.size() % 2 == 0);
+    auto n = time_points_per_metric.size() / 2;
+
+    chrono::high_resolution_clock::duration max, min, average;
+    double std_deviation;
+    tie(average, min, max, std_deviation) = data[i++];
     os << "\t<" << name << ">: n=" << n;
     os << ", average=";
     print_duration<OutputTimeFormat>(os, average);
-    os << ", std=" << sqrt(deviation) << TimePointName<OutputTimeFormat>::name;
+    os << ", std=" << std_deviation << TimePointName<OutputTimeFormat>::name;
     os << ", max=";
     print_duration<OutputTimeFormat>(os, max);
     os << ", min=";
     print_duration<OutputTimeFormat>(os, min);
+    os << ", percent=" << double(average.count()) / double(average_on_all_metrics.count())*100 << "%";
     os << endl;
   }
 }

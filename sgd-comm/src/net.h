@@ -1,6 +1,7 @@
 #pragma once
 #include <tensor.h>
 #include <functions/function.h>
+#include <utils/benchmark.h>
 
 #include <tuple>
 
@@ -8,7 +9,9 @@ namespace asgd {
 
 class Net {
 public:
-  Net(std::vector<Function*> fns, Dtype lr, int64_t test_size, int rank, int world_size) :fns(std::move(fns)), loss_(0), lr(lr), test_size(test_size), rank(rank), world_size(world_size) { }
+  Net(std::vector<Function*> fns, Dtype lr, int64_t test_size, int rank, int world_size)
+    :fns(std::move(fns)), loss_(0), lr(lr), test_size(test_size),
+    rank(rank), world_size(world_size), benchmark("net") { }
 
   void setup() {
     for (auto l : fns) {
@@ -26,6 +29,8 @@ private:
   Dtype lr;
   int64_t test_size;
   int rank, world_size;
+
+  Benchmark benchmark;
 };
 
 }

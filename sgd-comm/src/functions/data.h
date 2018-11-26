@@ -9,7 +9,8 @@ namespace asgd {
 
 class Data :public Function {
 public:
-  Data(const std::string &name, const std::vector<int64_t> &oshape, int64_t bs, bool use_mpi) :Function(name, {}, oshape), offset(0), test_offset(0), bs(bs), use_mpi(use_mpi) { }
+  Data(const std::string &name, const std::vector<int64_t> &oshape, int64_t bs, bool use_mpi)
+    :Function(name, {}, oshape), offset(0), test_offset(0), bs(bs), use_mpi(use_mpi) { }
   ~Data() {
     if (current_batch) delete current_batch;
     if (current_test_batch) delete current_test_batch;

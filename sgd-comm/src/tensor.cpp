@@ -16,12 +16,12 @@ namespace asgd {
 //  return std::move(t);
 //}
 
-asgd::Dtype asgd::Tensor::scalar() const { assert(this->size() == 1); return *data; }
+asgd::Dtype asgd::Tensor::scalar() const { assert(this->size() == 1); return *data_; }
 
 //asgd::Tensor &&asgd::Tensor::operator*(asgd::Dtype rhs) const {
 //  Tensor t(this->shape_);
 //  for (int64_t i = 0; i < this->size(); i++) {
-//    t[i] = data[i] * rhs;
+//    t[i] = data_[i] * rhs;
 //  }
 //  return std::move(t);
 //}
@@ -32,12 +32,12 @@ int64_t asgd::Tensor::size() const {
 
 const asgd::Dtype &asgd::Tensor::operator[](int64_t offset) const {
   assert(offset >= 0 && offset < this->size());
-  return data[offset];
+  return data_[offset];
 }
 
 asgd::Dtype &asgd::Tensor::operator[](int64_t offset) {
   assert(offset >= 0 && offset < this->size());
-  return data[offset];
+  return data_[offset];
 }
 
 std::vector<int64_t> Tensor::shape() const {
@@ -55,7 +55,7 @@ void Tensor::pprint(std::ostream &os) const {
     os << "[";
   }
   for (int i = 0; i < this->size(); i++) {
-    os << this->data[i] << ", ";
+    os << this->data_[i] << ", ";
   }
   os << "]" << std::endl;
 }
@@ -74,7 +74,7 @@ Dtype &Tensor::operator[](const std::vector<int64_t> &indexes) {
   for (int i = 0; i < radixes_.size(); i++) {
     offset += indexes[i] * radixes_[i];
   }
-  return data[offset];
+  return data_[offset];
 }
 const Dtype &Tensor::operator[](const std::vector<int64_t> &indexes) const {
   assert(indexes.size() == shape_.size());
@@ -86,7 +86,7 @@ const Dtype &Tensor::operator[](const std::vector<int64_t> &indexes) const {
   for (int i = 0; i < radixes_.size(); i++) {
     offset += indexes[i] * radixes_[i];
   }
-  return data[offset];
+  return data_[offset];
 }
 
 

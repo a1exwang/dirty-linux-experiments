@@ -24,15 +24,35 @@ void Net::forward() {
 }
 
 void Net::backward() {
+
   for (int64_t i = fns.size() - 1; i > 0; i--) {
-    const auto &input = fns[i-1]->output();
-    auto &input_diff = fns[i-1]->output_diff();
+
+    const auto &input = fns[i - 1]->output();
+    auto &input_diff = fns[i - 1]->output_diff();
+    benchmark.tick("backward " + fns[i]->name(), TimePoint::Attribute::Start);
     fns[i]->df(input_diff, input);
+    benchmark.tick("backward " + fns[i]->name(), TimePoint::Attribute::End);
+
 
     if (world_size > 0) {
-      MPI_Allreduce(MPI::IN_PLACE, input_diff.mutableData(), (int)input_diff.size(), MPI::FLOAT, MPI::SUM, MPI_COMM_WORLD);
+      benchmark.tick("allreduce " + fns[i]->name(), TimePoint::Attribute::Start);
+      MPI_Allreduce(MPI::IN_PLACE, input_diff.mutableData(), (int) input_diff.size(), MPI::FLOAT, MPI::SUM,
+                    MPI_COMM_WORLD);
       input_diff /= world_size;
+      benchmark.tick("allreduce " + fns[i]->name(), TimePoint::Attribute::End);
     }
+  }
+
+  if (world_size > 0) {
+    for (int i = 0; i < world_size; i++) {
+      if (i == rank) {
+        cout << "at rank " << rank << " ";
+        benchmark.pprint(cout);
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
+    }
+  } else {
+    benchmark.pprint(cout);
   }
 }
 
