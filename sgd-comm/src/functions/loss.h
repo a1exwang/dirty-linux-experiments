@@ -17,7 +17,7 @@ namespace asgd {
 class Loss :public Function {
 public:
   Loss(const std::string &name, int64_t n_in, int64_t bs) :Function(name, {}, {1}), n_in(n_in), bs(bs), offset(0), test_offset(0) { }
-  void setup() override;
+  void setup(int64_t bs) override;
   virtual std::tuple<Dtype, Dtype> test(const Tensor &input) = 0;
   Dtype accuracy() const { return acc_; }
 protected:

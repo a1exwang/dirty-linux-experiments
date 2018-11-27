@@ -16,7 +16,8 @@ vector<Tensor*> readMnistTest(const std::string &filename, int64_t n_in) {
   int fd = open(filename.c_str(), O_RDONLY);
   assert(fd > 0);
   struct stat s;
-  assert(stat(filename.c_str(), &s) >= 0);
+  int err = stat(filename.c_str(), &s);
+  assert(err == 0);
   size_t fsize = static_cast<size_t>(s.st_size);
 
   char *ptr = (char*)mmap(NULL, fsize, PROT_READ, MAP_PRIVATE | MAP_POPULATE, fd, 0);
@@ -37,7 +38,7 @@ vector<Tensor*> readMnistTest(const std::string &filename, int64_t n_in) {
   return ret;
 }
 
-void Loss::setup() {
+void Loss::setup(int64_t bs) {
   labels = readMnistTest("train-labels-idx1-ubyte", n_in);
   test_labels = readMnistTest("t10k-labels-idx1-ubyte", n_in);
 }
@@ -47,7 +48,7 @@ L2Norm::L2Norm(const std::string &name, int64_t n_in, int64_t bs, bool use_mpi) 
   if (use_mpi) {
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    offset = world_rank;
+    offset = bs * world_rank;
   } else {
     offset = 0;
   }
@@ -63,10 +64,13 @@ const Tensor &L2Norm::forward(const Tensor &input) {
     int64_t argmax_ = 0;
     Dtype max_val_ = 0;
 
-    const auto &nextLabel_ = labelAt(offset + i_bs);
+    cout << "label data " << (offset+i_bs) % labels.size() << endl;
+
+    const auto &nextLabel_ = *labels[(offset+i_bs) % labels.size()];
     for (int i_in = 0; i_in < n_in; i_in++) {
       auto y = nextLabel_[i_in];
-      auto y_ = input[{i_bs, i_in}];
+//      auto y_ = input[{i_bs, i_in}];
+      auto y_ = input[i_bs*n_in+i_in];
       if (y_ > max_val_) {
         max_val_ = y_;
         argmax_ = i_in;
@@ -89,8 +93,10 @@ void L2Norm::df(Tensor &input_diff, const Tensor &input) {
     for (int i_in = 0; i_in < n_in; i_in++) {
       const auto &label = *labels[(offset + i_bs)%labels.size()];
       auto y = label[i_in];
-      auto y_ = input[{i_bs, i_in}];
-      input_diff[{i_bs, i_in}] = (y_ - y);
+//      auto y_ = input[{i_bs,i_in}];
+      auto y_ = input[i_bs*n_in+i_in];
+//      input_diff[{i_bs, i_in}] = (y_ - y);
+      input_diff[i_bs*n_in+i_in] = (y_ - y);
     }
   }
   if (use_mpi) {
@@ -113,7 +119,7 @@ std::tuple<Dtype, Dtype> L2Norm::test(const Tensor &input) {
     const auto &label = *test_labels[(offset + i_bs) % test_labels.size()];
     for (int i_in = 0; i_in < n_in; i_in++) {
       auto y = label[i_in];
-      auto y_ = input[{i_bs, + i_in}];
+      auto y_ = input[i_bs*n_in, i_in];
       if (y_ > max_val_) {
         max_val_ = y_;
         argmax_ = i_in;

@@ -18,44 +18,21 @@ void gemm(Dtype *C, const Dtype *A, const Dtype *B, int64_t M, int64_t N, int64_
 
 
 void asgd::InnerProduct::df(Tensor &weight_diff, Tensor &input_diff, const Tensor &output_diff, const Tensor &input, const Tensor &output) const {
-  int64_t bs = input.shape()[0];
+  int64_t bs = input.shape()[input.shape().size()-1];
   for (int64_t i_bs = 0; i_bs < bs; i_bs++) {
     // df/dx
     for (int64_t i_in = 0; i_in < this->n_in; i_in++) {
-//      input_diff[{i_bs, i_in}] = 0;
-      input_diff[i_bs*n_in+i_in] = 0;
+      Dtype val = 0;
       for (int64_t i_out = 0; i_out < this->n_out; i_out++) {
 //        input_diff[{i_bs, i_in}] += output_diff[{i_bs, i_out}] * weight_[{i_out, i_in}];
-        input_diff[i_bs*i_in+i_in] += output_diff[i_bs*n_out+i_out] * weight_[i_out*n_in+i_in];
+         val += output_diff[i_bs*n_out+i_out] * weight_[i_out*(n_in+1)+i_in];
       }
+      input_diff[i_bs*n_in+i_in] = val;
     }
   }
-
-  // df/db
-  for (int64_t i_out = 0; i_out < this->n_out; i_out++) {
-    for (int64_t i_in = 0; i_in < this->n_in; i_in++) {
-//      weight_diff[{i_out, i_in}] = 0;
-      weight_diff[i_out*(n_in+1)+i_in] = 0;
-    }
-    for (int64_t i_bs = 0; i_bs < bs; i_bs++) {
-//      weight_diff[{i_out, n_in}] = output_diff[{i_bs, i_out}];
-      weight_diff[i_out*(n_in+1)+n_in] = output_diff[i_bs*(n_out)+i_out];
-    }
-  }
-
-  // df/dw
-  for (int64_t i_bs = 0; i_bs < bs; i_bs++) {
-    for (int64_t i_out = 0; i_out < this->n_out; i_out++) {
-      for (int64_t i_in = 0; i_in < this->n_in; i_in++) {
-//        weight_diff[{i_out, i_in}] += output_diff[{i_bs, i_out}] * input[{i_bs, i_in}];
-        weight_diff[i_out*(n_in+1) + i_in] += (output_diff[i_bs*n_out + i_out] * input[i_bs*n_in + i_in]) / bs;
-      }
-    }
-  }
-//  weight_diff /= bs;
 }
 
-void InnerProduct::setup() {
+void InnerProduct::setup(int64_t bs) {
   std::default_random_engine generator;
   std::normal_distribution<Dtype> distribution(0, 0.1);
 
@@ -65,13 +42,13 @@ void InnerProduct::setup() {
 }
 
 void InnerProduct::operator()(Tensor &output, const Tensor &input) const {
-  int64_t bs = input.shape()[0];
+  int64_t bs = input.shape()[input.shape().size() - 1];
   for (int64_t i_bs = 0; i_bs < bs; i_bs++) {
     for (int64_t i_out = 0; i_out < n_out; i_out++) {
       Dtype o = 0;
       for (int64_t i_in = 0; i_in < n_in; i_in++) {
 //        o += input[{i_bs, + i_in}] * weight_[{i_out, i_in}];
-        o += input[i_bs*n_in+i_in] * weight_[i_out*n_in+i_in];
+        o += input[i_bs*n_in+i_in] * weight_[i_out*(n_in+1)+i_in];
       }
 //      o += weight_[{i_out, n_in}];
       o += weight_[i_out*(n_in+1)+n_in];
@@ -81,4 +58,39 @@ void InnerProduct::operator()(Tensor &output, const Tensor &input) const {
   }
 }
 
+void InnerProduct::applyUpdates(const Tensor &input, Dtype lr) {
+  int64_t bs = input.shape()[input.shape().size()-1];
+
+  // df/db
+  for (int64_t i_out = 0; i_out < this->n_out; i_out++) {
+    for (int64_t i_bs = 0; i_bs < bs; i_bs++) {
+//      weight_diff[{i_out, n_in}] = output_diff[{i_bs, i_out}];
+      weight_diff_[i_out * (n_in + 1) + n_in] = output_diff_[i_bs * (n_out) + i_out];
+    }
+  }
+
+  for (int64_t i = 0; i < weight_diff_.size(); i++) {
+    weight_diff_[i] = 0;
+  }
+
+  // df/dw
+  for (int64_t i_bs = 0; i_bs < bs; i_bs++) {
+    for (int64_t i_out = 0; i_out < this->n_out; i_out++) {
+      for (int64_t i_in = 0; i_in < this->n_in; i_in++) {
+//        weight_diff[{i_out, i_in}] += output_diff[{i_bs, i_out}] * input[{i_bs, i_in}]/bs;
+        weight_diff_[i_out*(n_in+1)+i_in] += (output_diff_[i_bs*n_out+i_out] * input[i_bs*n_in+i_in]);
+      }
+    }
+  }
+  weight_diff_ /= bs;
+
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (rank == 0) {
+    std::cout << "weight_diff: " << "inner product" << " " << std::endl;
+    weight_diff_.pprint2(std::cout);
+  }
+
+  Function::applyUpdates(input, lr);
+}
 }

@@ -13,9 +13,8 @@ public:
     :Function(name, {}, oshape), offset(0), test_offset(0), bs(bs), use_mpi(use_mpi) { }
   ~Data() {
     if (current_batch) delete current_batch;
-    if (current_test_batch) delete current_test_batch;
   }
-  void setup() override;
+  void setup(int64_t bs) override;
   const Tensor &forward(const Tensor &input) override;
   const Tensor &test(int64_t test_size);
   bool learnable() const override { return false; };
@@ -27,7 +26,6 @@ private:
   int64_t test_offset;
   int64_t bs;
   Tensor *current_batch;
-  Tensor *current_test_batch;
   int world_rank, world_size;
   bool use_mpi;
 };

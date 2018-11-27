@@ -5,6 +5,7 @@
 #include <chrono>
 #include <ostream>
 #include <iostream>
+#include <functional>
 
 
 namespace asgd {
@@ -31,6 +32,12 @@ public:
   inline void tick(const std::string &metric_name = "default",
       TimePoint::Attribute attr = TimePoint::Attribute::Start) {
     time_points[metric_name].push_back(TimePoint(attr));
+  }
+  inline void tick(const std::string &metric_name = "default", std::function<void()> fn = nullptr) {
+    time_points[metric_name].push_back(TimePoint(TimePoint::Attribute::Start));
+    if (fn)
+      fn();
+    time_points[metric_name].push_back(TimePoint(TimePoint::Attribute::End));
   }
 
   void pprint(std::ostream &os) const;

@@ -13,15 +13,16 @@ public:
     :fns(std::move(fns)), loss_(0), lr(lr), test_size(test_size),
     rank(rank), world_size(world_size), benchmark("net") { }
 
-  void setup() {
+  void setup(int64_t bs) {
     for (auto l : fns) {
-      l->setup();
+      l->setup(bs);
     }
   }
   void forward();
   std::tuple<Dtype, Dtype> test(int64_t test_size);
-  void backward();
+  void backward(bool print);
   void applyUpdate();
+  void print();
   std::tuple<Dtype, Dtype> status() const { return std::make_tuple(loss_, acc_); };
 private:
   std::vector<Function*> fns;

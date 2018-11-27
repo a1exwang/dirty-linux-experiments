@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
     use_mpi = (bool)atoi(argv[3]);
   }
 
-  int world_rank, world_size;
+  int world_rank = 0, world_size = 0;
   if (use_mpi) {
     tie(world_rank, world_size) = initMPI();
   }
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
   auto drelu = [](Dtype x, Dtype y) -> Dtype { if (x > 0) return 1; else return 0; };
 
   vector<Function*> layers = {
-      new Data("1.data_", {bs, 28*28}, bs, use_mpi),
+      new Data("1.data_", {28*28, bs}, bs, use_mpi),
       new InnerProduct("2.fc1", 28*28, 10, bs),
 //       new PureFunction("relu1", 512, bs, relu, drelu),
 //       new InnerProduct("fc2", 512, 10, bs),
@@ -79,24 +79,27 @@ int main(int argc, char **argv) {
   };
 
   int64_t test_size = 10;
-  Net net(layers, 0.5, test_size, world_rank, world_size);
-  net.setup();
+  Net net(layers, 0.1, test_size, world_rank, world_size);
+  net.setup(bs);
 
   Dtype test_loss, test_acc;
   for (int it = 0; it < iters; it++) {
     net.forward();
     Dtype loss, acc;
     tie(loss, acc) = net.status();
-    net.backward();
+    net.backward(false);
     net.applyUpdate();
 
-    if (world_rank == 0) {
-      cout << "Iter = " << it << " Loss = " << loss << " Acc = " << std::setw(2) << acc*100 << "%" << endl;
+//    if (it % 100 == 0) {
+//      net.print();
+      if (world_rank == 0) {
+        cout << "Iter = " << it << " Loss = " << loss << " Acc = " << std::setw(2) << acc*100 << "%" << endl;
+      }
 //      if (it % test_size == 0) {
 //        tie(test_loss, test_acc) = net.test(bs);
 //        cout << "Test, loss = " << test_loss << " acc = " << test_acc << endl;
 //      }
-    }
+//    }
   }
   if (use_mpi) {
     endMPI();

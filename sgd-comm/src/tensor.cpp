@@ -51,6 +51,27 @@ void Tensor::pprint(std::ostream &os) const {
   }
   os << ">" << std::endl;
 
+  std::vector<int64_t> index(shape_.size(), 0);
+  int64_t overflow = 1;
+  int64_t first_overflow = 0;
+  while (true) {
+    for (int64_t j = 0; j < shape_.size(); j++) {
+      index[j] += overflow;
+      index[j] %= shape_[j];
+      overflow = index[j] / shape_[j];
+      if (j == 0)
+        first_overflow = overflow;
+    }
+    if (overflow) {
+      // all done
+      break;
+    }
+    os << (*this)[index] << " ";
+    if (first_overflow) {
+      os << "]" << std::endl << "[";
+    }
+  }
+
   for (int i = 0; i < shape_.size(); i++) {
     os << "[";
   }
@@ -93,8 +114,37 @@ const Dtype &Tensor::operator[](const std::vector<int64_t> &indexes) const {
 void Tensor::setupRadix() {
   int64_t r = 1;
   for (int i = 0; i < shape_.size(); i++) {
-    radixes_.insert(radixes_.begin(), r);
-    r *= shape_[shape_.size() - i - 1];
+    radixes_.push_back(r);
+    r *= shape_[i];
+  }
+}
+
+void Tensor::pprint1(std::ostream &os, int64_t depth, const std::vector<int64_t> &index) const {
+  if (depth > shape_.size() - 2) {
+    print_indent(os, depth+1); os << "[";
+    pprint_vector(os, index);
+    print_indent(os, depth+1); os << "]," << std::endl;
+  } else {
+    auto next_index = index;
+    next_index.insert(next_index.begin(), 0);
+    auto n = shape_[shape_.size()-1-depth];
+    for (int64_t i = 0; i < n; i++) {
+      print_indent(os, depth+1);
+      os << "[" << std::endl;
+      next_index[0] = i;
+      pprint1(os, depth+1, next_index);
+      print_indent(os, depth+1);
+      os << "]," << std::endl;
+    }
+  }
+}
+
+void Tensor::pprint_vector(std::ostream &os, const std::vector<int64_t> &index) const {
+  auto new_index = index;
+  new_index.insert(new_index.begin(), 0);
+  for (int64_t i = 0; i < shape_[0]; i++) {
+    new_index[0] = i;
+    os << (*this)[new_index] << " ";
   }
 }
 

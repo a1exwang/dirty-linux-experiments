@@ -2,10 +2,12 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <mpi.h>
 
 namespace asgd {
 
 typedef float Dtype;
+#define MPIDATATYPE (MPI::FLOAT)
 
 class Tensor {
 public:
@@ -56,6 +58,19 @@ public:
   }
 
   void pprint(std::ostream &os) const;
+  void pprint_vector(std::ostream &os, const std::vector<int64_t> &index) const;
+
+  void pprint2(std::ostream &os) const {
+    os << "[" << std::endl;
+    pprint1(os, 0, {});
+    os << "]" << std::endl;
+  }
+  void pprint1(std::ostream &os, int64_t depth, const std::vector<int64_t> &index) const;
+  void print_indent(std::ostream &os, int64_t depth) const {
+    for (int64_t i = 0; i < depth; i++) {
+      os << " ";
+    }
+  }
 
   bool isZero() { return data_ == nullptr; }
 

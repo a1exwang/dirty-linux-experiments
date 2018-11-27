@@ -126,4 +126,5 @@ void asgd::Benchmark::pprint(std::ostream &os) const {
   }
 }
 
+
 }

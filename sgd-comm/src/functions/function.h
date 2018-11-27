@@ -16,7 +16,7 @@ public:
       const std::vector<int64_t> &wshape,
       const std::vector<int64_t> &oshape)
       :name_(name), weight_(wshape), weight_diff_(wshape), output_(oshape), output_diff_(oshape) { }
-  virtual void setup() { }
+  virtual void setup(int64_t bs) { }
 
   virtual void operator() (Tensor &output, const Tensor &input) const { throw "not implemented"; };
   virtual const Tensor &forward(const Tensor &input) {
@@ -29,7 +29,7 @@ public:
   };
   virtual void df(Tensor &weight_diff, Tensor &input_diff, const Tensor &output_diff, const Tensor &input, const Tensor &output) const { };
 
-  virtual void applyUpdates(Dtype lr) {
+  virtual void applyUpdates(const Tensor &input, Dtype lr) {
     if (this->learnable()) {
       for (int64_t i = 0; i < this->weight_diff_.size(); i++) {
         this->weight_[i] += -lr * this->weight_diff_[i];
