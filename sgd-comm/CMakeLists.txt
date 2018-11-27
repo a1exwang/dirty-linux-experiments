@@ -21,10 +21,10 @@ add_executable(asgd asgd.cpp
         )
 target_link_libraries(asgd ${MPI_CXX_LIBRARIES})
 
-add_executable(mpi_win mpi_win.cpp cache.cpp)
+add_executable(mpi_win mpi_win.cpp)
 target_link_libraries(mpi_win ${MPI_CXX_LIBRARIES} pthread curl opencv_core opencv_highgui)
 
-add_executable(cache_test cache_test.cpp cache.cpp)
+add_executable(cache_test cache_test.cpp)
 target_link_libraries(cache_test curl pthread opencv_core opencv_highgui)
 
 add_executable(distributedhash distributedhash.c)

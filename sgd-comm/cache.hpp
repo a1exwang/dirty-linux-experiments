@@ -61,12 +61,13 @@ class IOCache {
 public:
   IOCache(
       std::vector<std::string> server_list,
-      int http_worker_count)
+      int http_worker_count,
+      int64_t buffer_size)
       :server_list(server_list),
        on_miss_(server_list, http_worker_count),
        http_worker_count(http_worker_count),
-       buffer_size_(1048576*1024),
-       buffer_(new int8_t[1048576 * 1024]),
+       buffer_size_(buffer_size),
+       buffer_(new int8_t[buffer_size]),
        current_offset(0)
        {}
 
@@ -93,7 +94,8 @@ public:
     on_miss_.Perform(key, data, status_code);
     if (current_offset + data.size() > buffer_size_) {
       // TODO: error reporting
-      throw "buffer overflow";
+      std::cerr << "cache buffer overflow" << std::endl;
+      abort();
     }
 
     int8_t *current_buf = this->buffer_+current_offset;
