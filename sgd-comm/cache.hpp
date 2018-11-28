@@ -70,7 +70,7 @@ public:
        buffer_(new int8_t[buffer_size]),
        current_offset(0)
        {}
-
+  ~IOCache() { delete []buffer_; }
   IOCache(const IOCache &rhs) = delete;
   IOCache(IOCache &&rhs) = delete;
   IOCache &operator=(const IOCache &rhs) = delete;
@@ -80,14 +80,14 @@ public:
     return hash_data_.find(key) != hash_data_.end();
   }
 
-  void GetOrRetrieve(const std::string &key, int8_t const* *buf, int64_t *size) {
+  int64_t GetOrRetrieve(const std::string &key, int8_t const* *buf, int64_t *size) {
     if (Exists(key)) {
       int64_t offset;
       std::tie(offset, *size) = hash_data_[key];
       *buf = this->buffer_ + offset;
-      return;
+      return offset;
     }
-    std::cerr << "cache miss on '" << key << "'" << std::endl;
+//    std::cerr << "cache miss on '" << key << "'" << std::endl;
     int64_t status_code = 0;
 
     std::vector<char> data;
@@ -102,13 +102,16 @@ public:
     memcpy(current_buf, data.data(), data.size());
     hash_data_[key] = std::make_pair(current_offset, data.size());
 
+    int64_t ret = current_offset;
     current_offset += data.size();
     *buf = current_buf;
     *size = data.size();
+    return ret;
   }
   int8_t *buffer() { return buffer_; }
   int64_t buffer_size() { return buffer_size_; }
   std::pair<int64_t, int64_t> find(const std::string &key) { return hash_data_[key]; }
+  const std::map<std::string, std::pair<int64_t, int64_t>> &hash_data() const { return hash_data_; }
 private:
   std::vector<std::string> server_list;
   int64_t http_worker_count;
@@ -124,11 +127,12 @@ typedef std::function<int64_t(int64_t seed, int64_t image_id, int64_t processes_
 static inline int64_t DefaultDistributionHash(int64_t _seed, int64_t image_id, int64_t processes_per_node, int64_t nodes, int64_t images_per_process, int64_t total_images) {
   int64_t total_cached_imgaes = processes_per_node * nodes * images_per_process;
   int64_t total_process = processes_per_node * nodes;
-  if (total_cached_imgaes >= total_images) {
-    return int64_t(image_id / (double(total_images) / total_process));
-  } else {
-    return int64_t(image_id / (double(total_cached_imgaes) / total_process));
-  }
+//  if (total_cached_imgaes >= total_images) {
+//    return int64_t(image_id / (double(total_images) / total_process));
+//  } else {
+//    return int64_t(image_id / (double(total_cached_imgaes) / total_process));
+//  }
+  return image_id % (processes_per_node * nodes);
 }
 
 }
