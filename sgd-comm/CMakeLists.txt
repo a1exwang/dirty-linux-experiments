@@ -9,6 +9,7 @@ find_package(OpenCV)
 include_directories(src)
 add_executable(sgd_comm sgd_comm.cpp)
 target_link_libraries(sgd_comm ${MPI_CXX_LIBRARIES})
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
 
 add_executable(asgd asgd.cpp
         src/net.cpp
