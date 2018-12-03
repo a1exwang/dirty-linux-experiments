@@ -4,8 +4,8 @@ project(sgd-comm)
 set(CMAKE_CXX_STANDARD 17)
 find_package(MPI)
 find_package(CUDA)
-find_package(OpenCV)
 
+include_directories(/usr/include/opencv4)
 include_directories(src)
 add_executable(sgd_comm sgd_comm.cpp)
 target_link_libraries(sgd_comm ${MPI_CXX_LIBRARIES})
@@ -23,7 +23,7 @@ add_executable(asgd asgd.cpp
 target_link_libraries(asgd ${MPI_CXX_LIBRARIES})
 
 add_executable(mpi_win mpi_win.cpp)
-target_link_libraries(mpi_win ${MPI_CXX_LIBRARIES} pthread curl opencv_core opencv_highgui glog)
+target_link_libraries(mpi_win ${MPI_CXX_LIBRARIES} pthread curl opencv_core opencv_imgcodecs glog)
 
 add_executable(cache_test cache_test.cpp)
 target_link_libraries(cache_test curl pthread opencv_core opencv_highgui)
