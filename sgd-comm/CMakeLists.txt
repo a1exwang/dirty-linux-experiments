@@ -23,10 +23,13 @@ add_executable(asgd asgd.cpp
 target_link_libraries(asgd ${MPI_CXX_LIBRARIES})
 
 add_executable(mpi_win mpi_win.cpp)
-target_link_libraries(mpi_win ${MPI_CXX_LIBRARIES} pthread curl opencv_core opencv_highgui)
+target_link_libraries(mpi_win ${MPI_CXX_LIBRARIES} pthread curl opencv_core opencv_highgui glog)
 
 add_executable(cache_test cache_test.cpp)
 target_link_libraries(cache_test curl pthread opencv_core opencv_highgui)
 
 add_executable(distributedhash distributedhash.c)
 target_link_libraries(distributedhash ${MPI_C_LIBRARIES})
+
+add_executable(test_hash test_hash.cpp)
+target_link_libraries(test_hash ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})

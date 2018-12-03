@@ -31,18 +31,15 @@ void use_data(const std::string &name, const int8_t *data, int64_t size) {
   assert(img.data);
 }
 
-void epoch_loop(const std::vector<string> &image_list, const function<int(int64_t)> &f, int rank,
+void epoch_loop(const std::vector<string> &image_list, const function<set<int>(int64_t)> &f, int rank,
                 int64_t print_size, int64_t epoch,
-                const function<int64_t (int64_t image_id)> &process_image) {
+                const function<int64_t(int64_t image_id)> &process_image) {
   static double epoch0_iops = 1;
   int64_t total_size = 0;
   auto epoch_start = std::chrono::high_resolution_clock::now();
   auto t0 = std::chrono::high_resolution_clock::now();
   for (int64_t image_id = 0; image_id < image_list.size(); image_id++) {
-//    printf("image_id = %ld\n", image_id);
-
     auto size = process_image(image_id);
-
     total_size += size;
 
     if (image_id % print_size == 0) {
@@ -74,12 +71,25 @@ void epoch_loop(const std::vector<string> &image_list, const function<int(int64_
 
 int main(int argc, char *argv[]) {
   int rank, nprocs;
+  if (argc < 7) {
+    fprintf(stderr, "invalid arguments\n");
+    abort();
+  }
   const char *filename = argv[1];
   string masters(argv[2]);
   int64_t nodes = strtol(argv[3], nullptr, 10);
   int64_t images_per_proc = strtol(argv[4], nullptr, 10);
   int64_t do_decode = strtol(argv[5], nullptr, 10);
   int64_t print_size = strtol(argv[6], nullptr, 10);
+  int64_t average_image_size = 200 * 1024; // default to 200K
+  if (argc > 7) {
+    average_image_size = strtol(argv[7], nullptr, 10);
+  }
+
+  double cluster_cache_yield_rate = 0;
+  if (argc > 8) {
+    cluster_cache_yield_rate = strtod(argv[8], nullptr);
+  }
 
   // parse server list
   vector<string> server_list;
@@ -106,26 +116,25 @@ int main(int argc, char *argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   // init cache
-  int64_t buffer_size = file_list.size() * 200 * 1024;
+  int64_t buffer_size = file_list.size() * average_image_size;
   int64_t image_count = file_list.size();
-  auto f = [=](int64_t image_id) -> int {
-    return (int)caffe::DefaultDistributionHash(0, image_id, nprocs/nodes, nodes, images_per_proc, image_count);
+  auto f = [=](int64_t image_id) -> set<int> {
+    return caffe::DefaultDistributionHash(0, image_id, nprocs/nodes, nodes, images_per_proc, image_count);
   };
-  caffe::DistributedCache distributedCache(server_list, 8, buffer_size, image_count, rank, f);
+  caffe::DistributedCache distributedCache(server_list, 8, buffer_size, image_count, nprocs, rank, cluster_cache_yield_rate, f);
 
   // epoch 0
   epoch_loop(file_list, f, rank, print_size, 0, [&](int64_t image_id) -> int64_t {
     const int8_t *buf; int64_t buf_size;
-    tie(buf, buf_size) = distributedCache.Get(file_list, image_id, true, false);
+    caffe::CacheHitType ht;
+    tie(buf, buf_size) = distributedCache.Get(file_list[image_id], image_id, true, false, false, &ht);
     if (do_decode)
       use_data(file_list[image_id], buf, buf_size);
     return buf_size;
   });
 
   // sync global index
-  MPI_Barrier(MPI_COMM_WORLD);
   distributedCache.Sync();
-  MPI_Barrier(MPI_COMM_WORLD);
 
   int64_t total_epochs = 10;
   caffe::CacheHitType hit_type;
@@ -136,7 +145,7 @@ int main(int argc, char *argv[]) {
       int64_t buf_size = 0;
 
       // TODO: improve memory management
-      tie(image_data, buf_size) = distributedCache.Get(file_list, image_id, false, true, &hit_type);
+      tie(image_data, buf_size) = distributedCache.Get(file_list[image_id], image_id, false, true, false, &hit_type);
       hits[hit_type]++;
 
       if (do_decode)
