@@ -3,5 +3,6 @@ PROJECT(cxx11-abi)
 
 ADD_LIBRARY(big SHARED big.cpp)
 ADD_LIBRARY(big2 SHARED big2.cpp)
+ADD_EXECUTABLE(amd64-cc SHARED amd64-cc.cpp)
 
 
