@@ -1,0 +1,10 @@
+#!/bin/bash
+g++ -static-libstdc++ -static-libgcc -shared -fPIC test.cpp -o libtest1.so
+echo "See there are many libstdc++ symbols exported"
+nm -CD libtest1.so | grep std | head -n10
+
+echo "See, there are no libstdc++ symbols exported now!"
+g++ -Wl,--version-script=version_script -static-libstdc++ -static-libgcc -shared -fPIC test.cpp -o libtest2.so
+nm -CD libtest2.so | grep std | head -n10
+
+rm libtest1.so libtest2.so
