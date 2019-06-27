@@ -24,3 +24,6 @@ target_compile_options(branches PUBLIC -mavx2 -no-pie)
 add_executable(memory_move backend/memory_move.cpp backend/memory_move.S)
 add_executable(memory_copy_bench backend/memcpy_bench.cpp)
 
+add_executable(htt htt/htt.cpp add_no_data_dependency/dd.S)
+target_link_libraries(htt pthread)
+target_compile_options(htt PUBLIC -mavx2 -no-pie)
