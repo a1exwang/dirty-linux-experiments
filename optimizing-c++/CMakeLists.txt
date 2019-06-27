@@ -12,11 +12,15 @@ target_link_options(data_dependency PUBLIC -no-pie)
 
 add_executable(avx avx/avx.cpp avx/avx.S)
 set_source_files_properties(avx/avx.S PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp -no-pie")
-target_compile_options(avx PUBLIC -mavx2 -no-pie)
+target_compile_options(avx PUBLIC -mavx2 -no-pie -mfma)
+
+add_executable(avx_memory_move avx_memory_move/avx_memory_move.cpp avx_memory_move/avx_memory_move.S)
+target_compile_options(avx_memory_move PUBLIC -mavx2 -no-pie)
 
 add_executable(branches branches/branches.cpp branches/branches.S)
 set_source_files_properties(branches/branches.S PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp -no-pie")
 target_compile_options(branches PUBLIC -mavx2 -no-pie)
 
 add_executable(memory_move backend/memory_move.cpp backend/memory_move.S)
+add_executable(memory_copy_bench backend/memcpy_bench.cpp)
 
