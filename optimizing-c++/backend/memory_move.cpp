@@ -8,7 +8,7 @@ int main() {
   // 1GiB
   double dt, ipc, ips;
   unsigned long long cycles;
-  scan_2exp(30, 31, 0, 4, [&](uint64_t i, uint64_t n, uint64_t p) {
+  scan_2exp(27, 28, 0, 4, [&](uint64_t i, uint64_t n, uint64_t p) {
     double bytes = 0;
     uint64_t block_size = 1UL<<p;
     std::tie(cycles, dt, ipc, ips) = scan([&]() {

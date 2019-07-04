@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 
 /**
  * GDB:
@@ -10,6 +11,10 @@
 struct Data {
   short age;
   char name[10];
+
+  int mac_address;
+  int ip_address;
+  const char *occupation = "Programming Monkey";
 };
 
 short filter_age(short age) {
