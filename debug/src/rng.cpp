@@ -1,7 +1,17 @@
+#include <atomic>
 #include <iostream>
 #include <random>
 #include <thread>
-#include <atomic>
+
+/**
+ * GDB:
+ *  - info thread
+ *  - bt
+ *  - step
+ * @param argc
+ * @param argv
+ * @return
+ */
 
 
 int main(int argc, char **argv) {
