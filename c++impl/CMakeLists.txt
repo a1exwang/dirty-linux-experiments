@@ -1,0 +1,1 @@
+add_executable(copy_ellision copy_ellision.cpp)
