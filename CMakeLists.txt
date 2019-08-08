@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.11)
 project(exps)
 
+set(CMAKE_CXX_STANDARD 17)
 add_subdirectory(optimizing-c++)
 add_subdirectory(optimizing-cuda)
 add_subdirectory(debug)
 add_subdirectory(thread)
 add_subdirectory(c++ub)
 add_subdirectory(c++impl)
+add_subdirectory(misc)
