@@ -1,0 +1,1 @@
+add_executable(c++-type-deduce c++-type-deduce.cpp)
