@@ -1,3 +1,4 @@
+#include <atomic>
 #include <iostream>
 #include <typeinfo>
 #include <vector>
@@ -17,6 +18,16 @@ std::vector<bool> get_vb() {
   return std::vector<bool>(10, true);
 }
 
+template <typename ... Ps>
+std::vector<int> make_par(Ps &&... others) {
+  return std::vector<int>(std::forward<Ps>(others)...);
+}
+
+template <typename ... Ps>
+std::vector<int> make_brace(Ps &&... others) {
+  return std::vector<int>{std::forward<Ps>(others)...};
+}
+
 int main() {
   arr x;
   x[0] = 123;
@@ -30,4 +41,7 @@ int main() {
 //  TypeDisplayer<decltype(l)> a2;
   auto vb5 = get_vb()[5];
   std::cout << "vb5 " << vb5 << std::endl;
+  std::cout << make_par(2, 0)[0] << std::endl;
+  std::cout << make_brace(2, 0)[0] << std::endl;
+  std::forward()
 }
